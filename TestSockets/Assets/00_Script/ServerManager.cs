@@ -17,7 +17,7 @@ public class ServerManager : BaseManager
 
 //	private TcpClient connectedTcpClient; 	
 
-    ConcurrentDictionary<int, TcpClient> _connectedClients = new ConcurrentDictionary<int, TcpClient>();
+    Dictionary<int, TcpClient> _connectedClients = new Dictionary<int, TcpClient>();
     private int counter = 0;
 
     #endregion
@@ -25,15 +25,16 @@ public class ServerManager : BaseManager
 
     void Start()
     {
-        tcpListenerThread = new Thread(new ThreadStart(ListenForIncomingRequests));
-        tcpListenerThread.IsBackground = true;
-        tcpListenerThread.Start();
+ 
         tcpListener = new TcpListener(IPAddress.Parse("127.0.0.1"), 8052);
         tcpListener.Start();
         Debug.Log("Server is listening");
+        tcpListenerThread = new Thread(new ThreadStart(ListenForIncomingRequests));
+        tcpListenerThread.IsBackground = true;
+        tcpListenerThread.Start();
     }
 
-    // Update is called once per frame
+
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Space))
@@ -53,8 +54,8 @@ public class ServerManager : BaseManager
             Byte[] bytes = new Byte[1024];
             while (true)
             {
-                using (var client = tcpListener.AcceptTcpClient())
-                {
+                var client = tcpListener.AcceptTcpClient();
+              
 
 
                     _connectedClients.TryAdd(counter, client);
@@ -74,7 +75,7 @@ public class ServerManager : BaseManager
                     //         Debug.Log("client message received as: " + clientMessage);
                     //     }
                     // }
-                }
+                
             }
         }
         catch (SocketException socketException)
@@ -120,7 +121,48 @@ public class ServerManager : BaseManager
 
     void HandleClients(object input)
     {
+        int id = (int)input;
+        TcpClient client;
+
+        client = _connectedClients[id];
+
+        while (true)
+        {
+            NetworkStream stream = null; //client.GetStream();
+            byte[] buffer = new byte[100];
+            int byteCount = 0;
+            try
+            {
+                stream = client.GetStream();
+                byteCount = stream.Read(buffer, 0, buffer.Length);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("stream error. probably user disconnected");
+
+                break;
+            }
+
+            if (byteCount == 0)
+            {
+                break;
+            }
+
+            string data = Encoding.ASCII.GetString(buffer, 0, byteCount);
+            Debug.Log(data);
+
+            foreach (TcpClient c in _connectedClients.Values)
+            {
+                NetworkStream st = c.GetStream();
+
+                st.Write(buffer, 0, buffer.Length);
+            }
+            
+        }
         
+        _connectedClients.Remove(id, out _);
+        client?.Client?.Shutdown(SocketShutdown.Both);
+        client?.Close();
     }
 
 
