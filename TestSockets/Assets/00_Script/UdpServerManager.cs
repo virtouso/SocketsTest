@@ -77,7 +77,7 @@ namespace _00_Script
         {
             Debug.Log($"data received:{Encoding.ASCII.GetString(reader.RawData)}");
 
-            _netManager.SendToAll(WriteSerializable(PacketType.Shoot, new ShootPacket { CommandId = 1 }), DeliveryMethod.ReliableUnordered);
+            _netManager.SendToAll(reader.RawData, DeliveryMethod.ReliableUnordered);
         }
 
 

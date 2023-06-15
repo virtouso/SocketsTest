@@ -6,8 +6,10 @@ using System.Text;
 using Code.Shared;
 using LiteNetLib;
 using LiteNetLib.Utils;
+using TMPro;
 using UnityEngine;
 using UnityEngine.PlayerLoop;
+using UnityEngine.UIElements;
 
 namespace _00_Script
 {
@@ -21,8 +23,9 @@ namespace _00_Script
         private NetPeer _server;
 
         private ServerState _cachedServerState;
-
-
+        
+        [SerializeField] private TMP_InputField nameField;
+        [SerializeField] private TextMeshProUGUI receivedText;
         private void Awake()
         {
             _cachedServerState = new ServerState();
@@ -107,6 +110,9 @@ namespace _00_Script
         public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, byte channelNumber, DeliveryMethod deliveryMethod)
         {
             Debug.Log($"server response:{Encoding.UTF8.GetString(reader.RawData)}");
+
+            receivedText.text = $"server response:{Encoding.UTF8.GetString(reader.RawData)}";
+
         }
 
         public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
@@ -128,7 +134,7 @@ namespace _00_Script
             _netManager.PollEvents();
 
             _writer.Reset();
-            _writer.Put(Encoding.UTF8.GetBytes($"{DateTime.Now.ToString()}"));
+            _writer.Put(Encoding.UTF8.GetBytes($"{nameField.text}|{DateTime.Now.ToString()}"));
             //   packet.Serialize(_writer);
             _server.Send(_writer, DeliveryMethod.ReliableOrdered);
         }
